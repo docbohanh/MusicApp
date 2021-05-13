@@ -30,6 +30,7 @@ dependencies:
   cupertino_icons: ^1.0.0
 
   get_it: ^5.0.4
+  keyboard_utils: ^1.2.4
 
 dev_dependencies:
   flutter_test:

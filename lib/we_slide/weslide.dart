@@ -1,6 +1,9 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:keyboard_utils/keyboard_listener.dart';
+import 'package:keyboard_utils/keyboard_utils.dart';
 import 'weslide_controller.dart';
 
 /// A backdrop widget that displaying contextual and actionable content. =]
@@ -230,6 +233,10 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
       _ac.status == AnimationStatus.completed ||
       _ac.status == AnimationStatus.forward;
 
+  KeyboardUtils  _keyboardUtils = KeyboardUtils();
+  int _idKeyboardListener;
+  double keyboardHeight = 0;
+
   @override
   void initState() {
     // Subscribe to animated when value change
@@ -256,6 +263,12 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
     // Fade Animation sequence
     _fadeAnimation = TweenSequence(widget.fadeSequence).animate(_ac);
 
+    _idKeyboardListener = _keyboardUtils.add(
+        listener: KeyboardListener(willHideKeyboard: () {
+          keyboardChangedHeightTo(0);
+        }, willShowKeyboard: (double keyboardHeight) {
+          keyboardChangedHeightTo(keyboardHeight);
+        }));
     // Super Init State
     super.initState();
   }
@@ -266,6 +279,13 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
     super.didUpdateWidget(oldWidget);
     oldWidget.controller?.removeListener(_animatedPanel);
     widget.controller?.addListener(_animatedPanel);
+  }
+
+  void keyboardChangedHeightTo(double height) {
+    setState(() {
+      keyboardHeight = height;
+      print('keyboardHeight $keyboardHeight');
+    });
   }
 
   /// Animate the panel [ValueNotifier]
@@ -283,6 +303,11 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
 
     /// ValueNotifier
     _effectiveController.dispose();
+
+    _keyboardUtils.unsubscribeListener(subscribingId: _idKeyboardListener);
+    if (_keyboardUtils.canCallDispose()) {
+      _keyboardUtils.dispose();
+    }
     super.dispose();
   }
 
@@ -388,9 +413,10 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    //Get MediaQuery Sizes
     final _height = MediaQuery.of(context).size.height;
     final _width = MediaQuery.of(context).size.width;
+
+    double keyboardPadding = widget.panelMinSize > 0 ? 0 : kToolbarHeight;
 
     return Scaffold(
       resizeToAvoidBottomPadding: false,
@@ -421,7 +447,8 @@ class _WeSlideState extends State<WeSlide> with SingleTickerProviderStateMixin {
                 );
               },
               child: Container(
-                height: _height - _getBodyHeight(),
+                height: _height - _getBodyHeight() + keyboardHeight,
+                padding: EdgeInsets.only(bottom: max(0, keyboardHeight - widget.panelMinSize - keyboardPadding)),
                 width: widget.bodyWidth ?? _width,
                 child: widget.body,
               ),
